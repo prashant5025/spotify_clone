@@ -2,62 +2,30 @@ import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { DetailsHeader, Error, Loader, RelatedSongs } from "../components";
 
+import { useGetArtistDetailsQuery } from "../redux/services/shazamCore";
 
-import {
-  useGetSongDetailsQuery,
-  useGetSongRelatedQuery,
-} from "../redux/services/shazamCore";
-
-const ArtistDetails = ({ song, i }) => {
-  const dispatch = useDispatch();
-  const { songid, id: artistId } = useParams();
+const ArtistDetails = () => {
+  const { id: artistId } = useParams();
   const { activeSong, isPlaying } = useSelector((state) => state.player);
 
-  const { data: songData, isFetching: isFetchingSongDetails } =
-    useGetSongDetailsQuery({ songid });
+  const { data: artistData, isFetching: isFetchingArtistDetails, error } =
+    useGetArtistDetailsQuery(artistId);
 
-  const {
-    data,
-    isFetching: isFetchingRelatedSongs,
-    error,
-  } = useGetSongRelatedQuery({ songid });
+  if (isFetchingArtistDetails) return;
+  <Loader title="Searching artist details..." />;
 
-  if (isFetchingSongDetails || isFetchingRelatedSongs) return;
-  <Loader title="Searching song details..." />;
-
-  const handlePasueClick = () => {
-    dispatch(playPause(false));
-  };
-
-  const handlePlayClick = () => {
-    dispatch(setActiveSong({ song, data, i }));
-    dispatch(playPause(true));
-  };
+  if(error) return <Error  />;
 
   return (
     <div className="flex flex-col">
-      <DetailsHeader artistId={artistId} songData={songData} />
-      <div className="mb-10">
-        <h2 className="text-white text-3xl font-bold">Lyrics:</h2>
+      <DetailsHeader artistId={artistId} artistData={artistData} />
 
-        <div className="mt-5">
-          {songData?.sections[1].type === "LYRICS" ? (
-            songData?.sections[1].text.map((line, i) => (
-              <p key={i} className="text-gray-400 text-base my-1">
-                {line}
-              </p>
-            ))
-          ) : (
-            <p className="text-gray-400 text-base my-1">Lyrics not available</p>
-          )}
-        </div>
-      </div>
       <RelatedSongs
-        data={data}
+        data={Object.values(artistData?.songs)}
+        artistId={artistId}
         isPlaying={isPlaying}
         activeSong={activeSong}
-        handlePasueClick={handlePasueClick}
-        handlePlayClick={handlePlayClick}
+
       />
     </div>
   );
